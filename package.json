@@ -1,6 +1,6 @@
 {
   "name": "comunik8-common",
-  "version": "1.0.546",
+  "version": "2.0.0",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -21,52 +21,63 @@
   "dependencies": {
     "amqplib": "^0.5.2",
     "bluebird": "^3.5.1",
-    "body-parser": "^1.18.2",
+    "body-parser": "^1.18.3",
     "cors": "^2.8.4",
-    "google-libphonenumber": "^3.0.12",
-    "helmet": "^3.10.0",
-    "http-status": "^1.0.1",
-    "joi": "^13.1.2",
+    "dotenv": "^5.0.1",
+    "google-libphonenumber": "^3.1.5",
+    "helmet": "^3.12.0",
+    "http-status": "^1.1.0",
+    "joi": "^13.3.0",
     "jsonwebtoken": "^8.2.1",
+    "lodash": "^4.17.10",
     "method-override": "^2.3.10",
-    "mongoose": "^5.0.6",
+    "mongoose": "^5.1.1",
     "passport": "^0.4.0",
     "passport-http-bearer": "^1.0.1",
     "passport-local": "^1.0.0",
-    "request": "^2.83.0",
+    "request": "^2.86.0",
     "request-promise": "^4.2.2",
-    "winston": "^2.4.0"
+    "winston": "^2.4.2"
   },
   "devDependencies": {
-    "babel-cli": "^7.0.0-beta.3",
-    "babel-core": "^7.0.0-beta.3",
+    "@babel/cli": "^7.0.0-beta.47",
+    "@babel/core": "^7.0.0-beta.47",
+    "@babel/plugin-proposal-class-properties": "^7.0.0-beta.47",
+    "@babel/plugin-proposal-object-rest-spread": "^7.0.0-beta.47",
+    "@babel/preset-env": "^7.0.0-beta.47",
+    "@babel/register": "^7.0.0-beta.47",
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-plugin-transform-builtin-extend": "^1.1.2",
-    "babel-preset-es2015": "^7.0.0-beta.3",
-    "babel-preset-stage-2": "^7.0.0-beta.3",
-    "babel-register": "^7.0.0-beta.3",
     "chai": "^4.1.2",
-    "cross-env": "^5.1.3",
+    "cross-env": "^5.1.5",
     "del": "^3.0.0",
-    "express": "^4.16.2",
+    "express": "^4.16.3",
     "gulp": "^3.9.1",
-    "gulp-babel": "^7.0.1",
+    "gulp-babel": "^8.0.0-beta.2",
     "gulp-load-plugins": "^1.5.0",
     "gulp-newer": "^1.4.0",
     "gulp-nodemon": "^2.2.1",
     "gulp-sourcemaps": "^2.6.4",
     "gulp-util": "^3.0.8",
-    "mocha": "^5.0.0",
+    "mocha": "^5.1.1",
     "run-sequence": "^2.2.1",
-    "supertest": "^3.0.0"
+    "supertest": "^3.1.0"
   },
   "babel": {
     "presets": [
-      "es2015",
-      "stage-2"
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "node": "current"
+          }
+        }
+      ]
     ],
     "plugins": [
-      "add-module-exports",
+      "@babel/plugin-proposal-class-properties",
+      "@babel/plugin-proposal-object-rest-spread",
+      "babel-plugin-add-module-exports",
       [
         "babel-plugin-transform-builtin-extend",
         {
