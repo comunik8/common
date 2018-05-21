@@ -1,15 +1,20 @@
-import mongoose from 'mongoose';
 import fs from 'fs';
 
 let mongoUri, mongoOptions;
 
-const connect = () => {
-  return mongoose.connect(mongoUri, mongoOptions);
-};
+const notConfigured = () => new Error('Not Configured');
+let connect = notConfigured,
+    disconnect = notConfigured;
 
-const disconnect = () => mongoose.disconnect();
+const configure = (config, mongoose = null, connect_automatically = true) => {
+  mongoose = mongoose || require('mongoose');
 
-const configure = (config, connect_automatically = true) => {
+  connect = () => {
+    return mongoose.connect(mongoUri, mongoOptions);
+  };
+
+  disconnect = () => mongoose.disconnect();
+
   // make bluebird default Promise
   Promise = require('bluebird');
 
