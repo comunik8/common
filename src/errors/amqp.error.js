@@ -1,7 +1,5 @@
-export default class BaseError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor.name);
-  }
+import BaseError from './base.error';
+
+export default class AmqpError extends BaseError {
+  
 }

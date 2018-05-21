@@ -6,7 +6,7 @@
     "start": "gulp serve"
   },
   "dependencies": {
-    "comunik8-common": "^1.0.52",
+    "comunik8-common": "^1.0.541",
     "dotenv": "^5.0.1"
   },
   "babel": {

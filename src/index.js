@@ -9,7 +9,7 @@ import authUserRole from './auth/user.middleware';
 import configureAuth from './auth/passport';
 
 //config
-import config, {schema as configSchema} from './config/config';
+import config, {schema as configSchema, validate as validateConfig} from './config/config';
 
 //errors
 import BaseError from './errors/base.error';
@@ -23,29 +23,19 @@ import logger, {configureLogger} from './logger/logger';
 import numberHelper from './helpers/number';
 
 //services
-import dialerService from './service/dialer';
-import lookupService from './service/lookup';
-import mailService from './service/mail';
-import ogiService from './service/ogi';
-import textService from './service/text';
-import tinyUrlService from './service/tinyurl';
-import userService from './service/user';
+import Service from './service/service';
+
+//amqp
+import amqp from './app/amqp';
+
+//controllers
+import amqpController from './controllers/amqp.controller';
 
 //db
 import configureMongoose, {connect as connectMongoose, disconnect as disconnectMongoose} from './app/mongoose';
 
 //workers
 import Worker from './worker/pool';
-
-const configureServices = (config, app) => [
-  dialerService,
-  lookupService,
-  mailService,
-  ogiService,
-  textService,
-  tinyUrlService,
-  userService,
-].forEach(m => m.configure(config, app));
 
 export {
   //app
@@ -55,6 +45,10 @@ export {
   configureMongoose,
   connectMongoose,
   disconnectMongoose,
+
+  //amqp
+  amqp,
+  amqpController,
 
   //auth
   configureAuth,
@@ -66,6 +60,7 @@ export {
   //config
   config,
   configSchema,
+  validateConfig,
 
   //errors
   BaseError,
@@ -84,14 +79,7 @@ export {
   numberHelper,
 
   //services
-  configureServices,
-  dialerService,
-  lookupService,
-  mailService,
-  ogiService,
-  textService,
-  tinyUrlService,
-  userService,
+  Service,
 
   //workers
   Worker,

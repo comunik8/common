@@ -1,6 +1,6 @@
 import util from 'util';
 import winston from 'winston';
-import mail from '../service/mail';
+import Service from '../service/service';
 
 const logger = winston.transports.mail = function(options = {}) {
   this.name = 'mail.service';
@@ -16,8 +16,8 @@ logger.prototype.log = function(level, msg, meta, callback) {
   //exclude api 404
   if (JSON.stringify(meta).match(/Error: API not found/i)) return callback(null, true);
 
-  mail.sendError(msg, level, meta)
-      .then(res => callback(null, true))
+  Service.Mail.send('error', {msg, level, meta})
+      .then(() => callback(null, true))
       .catch(e => callback(e, false));
 };
 

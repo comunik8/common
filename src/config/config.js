@@ -1,41 +1,74 @@
 import Joi from 'joi';
+import _ from 'lodash';
 
-const getServiceUrl = (service) => `${service.toUpperCase()}_URL`,
-    getServiceKey = (service) => `${service.toUpperCase()}_KEY`;
+const getRandomPort = () => Math.round(Math.random() * 10000) + 1000;
 
-const schema = {
-  api: {
-    API_KEY: Joi.string().required(),
-  },
-  user: {
-    USER_URL: Joi.string().required(),
-  },
-};
+const schema = (keys = ['DEFAULT']) =>
+    _.reduce(_.pick({
+      DEFAULT: {
+        APP: Joi.string().required(),
+        NODE_ENV: Joi.string().valid(['development', 'production', 'test']).default('development'),
+        PORT: Joi.number().default(getRandomPort()),
+        TZ: Joi.string().default('UTC'),
+      },
 
-const services = ['dialer', 'lookup', 'mail', 'ogi', 'text', 'tinyurl'];
-for (const s in services) {
-  if (services.hasOwnProperty(s)) {
-    const service = services[s];
-    // add to schema
-    schema[service] = {};
-    schema[service][getServiceUrl(service)] = Joi.string().required();
-    schema[service][getServiceKey(service)] = Joi.string().required();
-  }
-}
-export {schema};
+      MONGO: {
+        MONGO_USERNAME: Joi.string(),
+        MONGO_PASSWORD: Joi.string(),
+        MONGO_DB: Joi.string().required(),
+        MONGO_RS: Joi.string().default('rs0'),
+        MONGO_CERT: Joi.string(),
+        MONGO_KEY: Joi.string(),
+        MONGO_SERVERS: Joi.string().required(),
+      },
 
-const config = (service, envVars = {}) => {
+      AMQP: {
+        AMQP_USERNAME: Joi.string().required(),
+        AMQP_PASSWORD: Joi.string().required(),
+        AMQP_SERVER: Joi.string().required(),
+      },
+
+    }, keys), (obj, val, key) => {
+      if (typeof val === 'object') {
+        if (val.isJoi) {
+          obj[key] = val;
+        } else {
+          obj = {...obj, ...val};
+        }
+        return obj;
+      }
+    }, {});
+
+const regex = /^(\w+)_(\w+)$/;
+const config = (schema, vars = {}) => {
   const out = {};
 
-  if (schema[service] && schema[service][getServiceUrl(service)]) {
-    out.url = envVars[getServiceUrl(service)];
-  }
+  _.forEach(schema, (v, k) => {
+    if (k === 'NODE_ENV') {
+      out['env'] = vars[k];
 
-  if (schema[service] && schema[service][getServiceKey(service)]) {
-    out.key = envVars[getServiceKey(service)];
-  }
+    } else if (!k.match(regex)) {
+      out[k.toLowerCase()] = vars[k];
+
+    } else {
+      const group = k.replace(regex, '$1').toLowerCase(), key = k.replace(regex, '$2');
+
+      if (!_.isObject(out[group])) out[group] = {};
+
+      out[group][key.toLowerCase()] = vars[k];
+    }
+  });
 
   return out;
 };
 
+const validate = (envVarsSchema) => {
+  const {error, value: envVars} = Joi.validate(process.env, Joi.object(envVarsSchema).unknown());
+  if (error) {
+    throw new Error(`Config validation error: ${error.message}`);
+  }
+  return envVars;
+};
+
+export {schema, validate};
 export default config;

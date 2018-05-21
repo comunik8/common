@@ -1,0 +1,30 @@
+import logger from '../logger/logger';
+import AmqpError from '../errors/amqp.error';
+
+function getMethodFromPath(path) {
+  return (path.split('/')[1] || 'index').replace(/-/g, '_');
+}
+
+function getControllerFromPath(path) {
+  return `amqp.${path.split('/')[0].replace(/-/g, '.')}.controller`;
+}
+
+export default class Controller {
+
+  constructor(dir) {
+    this.dir = dir;
+  }
+
+  handle = (data, info) => {
+    const regex = /^(.*)\.(.*)$/,
+        file = `amqp.${info.key.replace(regex, '$1')}.controller.js`,
+        fn = info.key.replace(regex, '$2');
+
+    try {
+      return require(this.dir + '/' + file)[fn](data);
+    } catch (e) {
+      logger.error({message: 'Failed to process amqp action,', file, function: fn, e});
+      return Promise.reject(new AmqpError('Internal Error'));
+    }
+  };
+}

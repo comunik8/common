@@ -18,7 +18,7 @@ const configure = (config, connect_automatically = true) => {
 
   // connect to mongo db
   mongoOptions = {authSource: config.mongo.db};
-  if (config.mongo.server.indexOf(',') >= 0) mongoOptions.replicaSet = config.mongo.rs;
+  if (config.mongo.servers.indexOf(',') >= 0) mongoOptions.replicaSet = config.mongo.rs;
   if (config.mongo.cert) {
     mongoOptions = {
       ...mongoOptions,
@@ -32,7 +32,7 @@ const configure = (config, connect_automatically = true) => {
   if (config.mongo.password) credentials += `:${config.mongo.password}`;
   if (credentials.length) credentials += '@';
 
-  mongoUri = `mongodb://${credentials}${config.mongo.server}/${config.mongo.db}`;
+  mongoUri = `mongodb://${credentials}${config.mongo.servers}/${config.mongo.db}`;
 
   if (connect_automatically) {
     mongoose.connection.on('error', (e) => {

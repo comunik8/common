@@ -3,8 +3,10 @@ import express from 'express';
 // config should be imported before importing any other file
 import config from './config';
 
+import amqp from '../src/app/amqp';
+
 //import config helpers
-import {configureLogger, configureAuth, configureApp, configureServices, configureMongoose, authApi, mailService} from 'comunik8-common';
+import {configureLogger, configureAuth, configureApp, configureMongoose, authApi, mailService} from 'comunik8-common';
 
 // init logs
 configureLogger();
@@ -14,9 +16,6 @@ configureAuth(config);
 
 // init database
 configureMongoose(config);
-
-// init services
-configureServices(config.service, config.app);
 
 // configure routes
 const router = express.Router();
@@ -33,6 +32,15 @@ router.post('/send-mail',
 // init app
 const app = configureApp(router);
 
+import {Service} from '../src/index';
+
+Service.Mail.send('email.send', {data});
+
+amqp.addApiListener((data, info) => {
+
+  {exchange: 'comunik8.common', key: 'email.send' , path: }
+});
+
 // module.parent check is required to support mocha watch
 // src: https://github.com/mochajs/mocha/issues/1912
 if (!module.parent) {
@@ -45,6 +53,7 @@ if (!module.parent) {
 //configure workers
 
 import {Worker} from 'comunik8-common';
+
 const worker = new Worker({
   maxWorkers: 1,
   tasks: {

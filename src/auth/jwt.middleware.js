@@ -1,4 +1,4 @@
-import userService from '../service/user';
+import Service from '../service/service';
 import {UnauthorizedHttpError} from '../errors/http.error';
 import jsonwebtoken from 'jsonwebtoken';
 
@@ -14,13 +14,11 @@ const authenticate = (role = 'user', section = null) => {
     const jwt = auth.replace(/^JWT /, '');
     const {company} = jsonwebtoken.decode(jwt);
 
-    return userService.canAccess(jwt, role, section)
-        .then(u => {
-          req.user = {...u, company, jwt};
-          next();
-          return null; // bluebird doesn't like it when we return next(), we need to return null to silence this warning
-        })
-        .catch(e => next(e));
+    return Service.User.request('auth.can.access', {jwt, role, section}, u => {
+      req.user = {...u, company, jwt};
+      next();
+      return null; // bluebird doesn't like it when we return next(), we need to return null to silence this warning
+    }).catch(e => next(e));
   };
 };
 
