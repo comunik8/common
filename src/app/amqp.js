@@ -53,24 +53,30 @@ amqp.request = (service, key, data, handler) => {
         if (!amqp._response_queue) {
           amqp._response_queue = response_queue;
 
-          return amqp._channel.consume(response_queue, (msg) => {
-            const id = msg.properties.correlationId,
-                message = JSON.parse(msg.content.toString());
+          return new Promise((resolve, reject) => {
+            amqp._channel.consume(response_queue, (msg) => {
+                  const id = msg.properties.correlationId,
+                      message = JSON.parse(msg.content.toString());
 
-            // todo shall we do anything with unrecognised message?
-            if (!amqp._responses[id]) return;
-            if (message.error || message.data) {
-              return amqp._responses[id](message.error, message.data, message.info);
-            }
+                  // todo shall we do anything with unrecognised message?
+                  if (!amqp._responses[id]) return;
+                  if (message.error || message.data) {
+                    return amqp._responses[id](message.error, message.data, message.info);
+                  }
 
-          }, {noAck: true});
+                },
+                {noAck: true},
+                (err, ok) => {
+                  if (err) reject(err);
+                  resolve(ok);
+                });
+          });
         }
       })
       .then(() => {
         amqp._channel.sendToQueue(request_queue,
             Buffer.from(JSON.stringify({data, info: {key, exchange: request_queue, path: `${request_queue}.${key}`}})),
             {correlationId: message_uuid, replyTo: response_queue});
-
       });
 };
 
@@ -118,12 +124,19 @@ amqp.addApiListener = (handler) => {
           }
         };
 
-        amqp._channel.consume(api_queue, msg => amqp._api(
-            JSON.parse(msg.content.toString()).data,
-            JSON.parse(msg.content.toString()).info,
-            msg), {noAck: false});
+        return new Promise((resolve, reject) => {
+          amqp._channel.consume(
+              api_queue, msg => amqp._api(
+                  JSON.parse(msg.content.toString()).data,
+                  JSON.parse(msg.content.toString()).info,
+                  msg),
+              {noAck: false},
+              (err, ok) => {
+                if (err) return reject(err);
+                resolve(ok);
+              });
+        });
 
-        return Promise.resolve();
       });
 };
 
@@ -150,7 +163,15 @@ amqp.addListener = (exchange, key, handler, force = false) =>
 
           //todo handle failures (Promise.reject)
           amqp._handlers[path] = (data, info) => handler(data, info);
-          amqp._channel.consume(q.queue, msg => amqp._handlers[path](JSON.parse(msg.content.toString()), {exchange: amqp.getPath(exchange), key, path}), {noAck: true});
+          return new Promise((resolve, reject) => {
+            amqp._channel.consume(
+                q.queue, msg => amqp._handlers[path](JSON.parse(msg.content.toString()), {exchange: amqp.getPath(exchange), key, path}),
+                {noAck: true},
+                (err, ok) => {
+                  if (err) return reject(err);
+                  resolve(ok);
+                });
+          });
         });
 
 // CONFIG
