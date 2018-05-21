@@ -159,7 +159,7 @@ amqp.configure = (config) => {
   amqp.app = config.app;
   amqp.env = config.env;
 
-  const uri = `amqps://${config.amqp.username}:${config.amqp.password}@${config.amqp.server}`,
+  const uri = `${config.amqp.protocol}://${config.amqp.username}:${config.amqp.password}@${config.amqp.server}`,
       options = config.amqp.options || {};
 
   return new Promise((resolve, reject) => {

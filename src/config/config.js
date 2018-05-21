@@ -26,6 +26,7 @@ const schema = (keys = ['DEFAULT']) =>
         AMQP_USERNAME: Joi.string().required(),
         AMQP_PASSWORD: Joi.string().required(),
         AMQP_SERVER: Joi.string().required(),
+        AMQP_PROTOCOL: Joi.string().default('amqps'),
       },
 
     }, keys), (obj, val, key) => {
