@@ -15,8 +15,8 @@ const strategies = [
   },
   {
     name: 'email.password',
-    fn: (config) => new LocalStrategy({usernameField: 'email', session: false}, (email, password, callback) => {
-      return Service.User.request('auth.login', {email: email.toLowerCase(), password: password.replace(' ', '')}, u => callback(null, u).catch(e => callback(e)));
+    fn: () => new LocalStrategy({usernameField: 'email', session: false}, (email, password, callback) => {
+      return Service.User.request('auth.authenticateWithPassword', {email: email.toLowerCase(), password: password.replace(' ', '')}, u => callback(null, u).catch(e => callback(e)));
     }),
   },
 ];

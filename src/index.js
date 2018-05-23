@@ -2,11 +2,11 @@
 import configureApp from './app/express';
 
 //auth
-import authApi from './auth/api.middleware';
-import authEmailPassword from './auth/email.password.middleware';
-import authJWT from './auth/http.jwt.middleware';
-import authJWTPromise from './auth/promise.jwt.middleware';
-import authUserRole from './auth/http.jwt.middleware';
+import authApi from './auth/http.api.authenticate.middleware';
+import authEmailPassword from './auth/http.email.password.authenticate.middleware';
+import authJWT from './auth/http.jwt.authenticate.middleware';
+import authJWTPromise from './auth/promise.jwt.authenticate.middleware';
+import authUserRole from './auth/http.jwt.authenticate.middleware';
 import configureAuth from './auth/passport';
 
 //config

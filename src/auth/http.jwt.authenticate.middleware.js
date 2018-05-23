@@ -12,10 +12,10 @@ const authenticate = (role = 'user', section = null) => {
     if (!auth.match(/^JWT .*$/)) return next(new UnauthorizedHttpError('Only JWT Auth is supported'));
 
     const jwt = auth.replace(/^JWT /, '');
-    const {company} = jsonwebtoken.decode(jwt);
+    const {email} = jsonwebtoken.decode(jwt);
 
-    return Service.User.request('auth.can.access', {jwt, role, section}, u => {
-      req.user = {...u, company, jwt};
+    return Service.User.request('user.canAccess', {email, role, section}, u => {
+      req.user = u;
       next();
       return null; // bluebird doesn't like it when we return next(), we need to return null to silence this warning
     }).catch(e => next(e));
