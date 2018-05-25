@@ -1,5 +1,5 @@
 import amqplib from 'amqplib/callback_api';
-import AmqpError from '../errors/amqp.error';
+import AmqpError, {AmqpTimeoutError} from '../errors/amqp.error';
 import logger from '../logger/logger';
 import {v4 as uuid} from 'uuid';
 
@@ -37,48 +37,68 @@ amqp.checkQueueExists = (name, options = {durable: true, exclusive: false}) =>
 
 // RPC
 
-amqp.request = (service, key, data) => {
+amqp.request = (service, key, data, execution_timeout = null) => {
   const request_queue = amqp.getPath('api', service),
       response_queue = amqp.getPath(amqp.uuid),
       message_uuid = uuid().toString();
 
-  return new Promise((request_resolve, request_reject) =>
-      amqp.checkIsConnected()
-          .then(() => Promise.all([
-            amqp.checkQueueExists(request_queue),
-            amqp.checkQueueExists(response_queue, {durable: true, exclusive: true}),
-          ]))
-          .then(() => {
-            amqp._responses[message_uuid] = (error, data) => error ? request_reject(error) : request_resolve(data);
+  return new Promise((request_resolve, request_reject) => {
 
-            if (!amqp._response_queue) {
-              amqp._response_queue = response_queue;
+    let timeout;
 
-              return new Promise((resolve, reject) => {
-                amqp._channel.consume(response_queue, (msg) => {
-                      const id = msg.properties.correlationId,
-                          message = JSON.parse(msg.content.toString());
+    if (execution_timeout) {
+      timeout = setTimeout(() => {
+        if (amqp._responses[message_uuid]) delete amqp._responses[message_uuid];
+        return request_reject(new AmqpTimeoutError(`Execution time limit of ${execution_timeout}s reached.`, {service, key, data}));
+      }, execution_timeout * 1000);
+    }
 
-                      // todo shall we do anything with unrecognised message?
-                      if (!amqp._responses[id]) return;
+    amqp.checkIsConnected()
+        .then(() => Promise.all([
+          amqp.checkQueueExists(request_queue),
+          amqp.checkQueueExists(response_queue, {durable: true, exclusive: true}),
+        ]))
+        .then(() => {
+          amqp._responses[message_uuid] = {fn: (error, data) => error ? request_reject(error) : request_resolve(data), timeout};
 
-                      if (message.error || message.data) {
-                        return amqp._responses[id](message.error, message.data, message.info);
-                      }
-                    },
-                    {noAck: true},
-                    (err, ok) => {
-                      if (err) reject(err);
-                      resolve(ok);
-                    });
-              });
-            }
-          })
-          .then(() => amqp._channel.sendToQueue(
-              request_queue,
-              Buffer.from(JSON.stringify({data, info: {key, exchange: request_queue, path: `${request_queue}.${key}`}})),
-              {correlationId: message_uuid, replyTo: response_queue}),
-          ));
+          if (!amqp._response_queue) {
+            amqp._response_queue = response_queue;
+
+            return new Promise((resolve, reject) => {
+              amqp._channel.consume(response_queue, (msg) => {
+                    const id = msg.properties.correlationId,
+                        message = JSON.parse(msg.content.toString()),
+                        response = amqp._responses[id];
+
+                    // ignore non-recognised messages
+                    if (!response) return;
+
+                    // clear timeouts
+                    if (amqp._responses[id].timeout) clearTimeout(amqp._responses[id].timeout);
+                    if (response.timeout) clearTimeout(response.timeout);
+
+                    // delete response reference
+                    delete amqp._responses[id];
+
+                    // process response
+                    if (message.error || message.data) {
+                      return response.fn(message.error, message.data, message.info);
+                    }
+                  },
+                  {noAck: true},
+                  (err, ok) => {
+                    if (err) reject(err);
+                    resolve(ok);
+                  });
+            });
+          }
+        })
+        .then(() => amqp._channel.sendToQueue(
+            request_queue,
+            Buffer.from(JSON.stringify({data, info: {key, exchange: request_queue, path: `${request_queue}.${key}`}})),
+            {correlationId: message_uuid, replyTo: response_queue}),
+        );
+  });
 };
 
 amqp.addApiListener = (handler) => {

@@ -15,8 +15,8 @@ export default class Service {
   }
 
   //proxy to amqp
-  request(key, data) {
-    return amqp.request(this.service, key, data);
+  request(key, data, execution_timeout) {
+    return amqp.request(this.service, key, data, execution_timeout);
   }
 
   send(key, data, options = {}) {

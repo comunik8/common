@@ -15,6 +15,7 @@ import config, {schema as configSchema, validate as validateConfig} from './conf
 //errors
 import BaseError from './errors/base.error';
 import HttpError, {ApiHttpError, UnauthorizedHttpError, BadRequestHttpError, NotFoundHttpError} from './errors/http.error';
+import AmqpError, {AmqpTimeoutError} from './errors/amqp.error';
 import {SkipWorkerError} from './errors/worker.error';
 
 //logger
@@ -72,6 +73,8 @@ export {
   BadRequestHttpError,
   NotFoundHttpError,
   SkipWorkerError,
+  AmqpError,
+  AmqpTimeoutError,
 
   //logger
   configureLogger,
