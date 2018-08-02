@@ -14,8 +14,11 @@ const authenticate = (role = 'user', section = null) => {
     const jwt = auth.replace(/^JWT /, '');
     const {email} = jsonwebtoken.decode(jwt);
 
-    return Service.User.request('user.canAccess', {email, role, section}, u => {
-      req.user = u;
+    return Service.User.request('user.canAccess', {jwt, role, section}).then(u => {
+      req.user = {
+        ...u,
+        jwt
+      };
       next();
       return null; // bluebird doesn't like it when we return next(), we need to return null to silence this warning
     }).catch(e => next(e));

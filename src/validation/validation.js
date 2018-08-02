@@ -78,7 +78,7 @@ const parseMessage = (msg, type, label) => {
   return msg.replace(new RegExp(` //${label}$`), '');
 };
 
-const validation = (errObj, request, schema, location = false, allowUnknown = false) => {
+const validation = (errObj, request, schema, location = false, allowUnknown = true) => {
   if (!request || !schema) return;
 
   const joiOptions = {

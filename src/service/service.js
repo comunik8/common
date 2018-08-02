@@ -6,6 +6,10 @@ export const SERVICE_USER = 'user';
 export const SERVICE_URL = 'url';
 export const SERVICE_SESSION = 'session';
 export const SERVICE_LEVEL_UP = 'levelup';
+export const SERVICE_CALL_SCRIPT = 'callscript';
+export const SERVICE_ADDRESS = 'address';
+export const SERVICE_TASK = 'task';
+export const SERVICE_LOGS = 'logs';
 
 export default class Service {
 
@@ -50,5 +54,21 @@ export default class Service {
 
   static get Url() {
     return new Service(SERVICE_URL);
+  }
+
+  static get CallScript() {
+    return new Service(SERVICE_CALL_SCRIPT);
+  }
+
+  static get Address() {
+    return new Service(SERVICE_ADDRESS);
+  }
+
+  static get Task() {
+    return new Service(SERVICE_TASK);
+  }
+
+  static get Logs() {
+    return new Service(SERVICE_LOGS);
   }
 }

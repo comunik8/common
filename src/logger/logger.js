@@ -1,5 +1,5 @@
 import winston from 'winston';
-import Mail from './logger.mail.service';
+import AMQPLogger from './logger.amqp.service';
 
 const transports = [
   {
@@ -11,14 +11,15 @@ const transports = [
     }),
   },
   {
-    'name': 'iros-mail',
-    'fn': new Mail,
+    'name': 'amqp.logger',
+    'fn': new AMQPLogger,
   },
 ];
 
 let _logger = console;
 
-export const configureLogger = (use_transports = ['console', 'iros-mail']) => {
+export const configureLogger = () => {
+  const use_transports = ['console', 'amqp.logger'];
   _logger = new (winston.Logger)({transports: use_transports.map(t => (transports.find(f => f.name === t) || {}).fn).filter(f => f)});
 };
 

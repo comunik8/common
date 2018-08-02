@@ -1,6 +1,8 @@
 import logger from '../logger/logger';
 import AmqpError from '../errors/amqp.error';
 import validate from '../validation/validation';
+import config from "../config/config";
+import Service from "../service/service";
 
 function getMethodFromPath(path) {
   return (path.split('/')[1] || 'index').replace(/-/g, '_');
@@ -26,16 +28,34 @@ export default class Controller {
       let schema;
       try {
         schema = require(this.dir + '/' + validator)[fn];
+        logger.log({schema});
       } catch (e) {
         //schema not defined or doesn't exists at all
       }
+      const ctrl = require(this.dir + '/' + controller);
+      if (!data) return ctrl[fn]();
+      
+      logger.log({data});
+      
+      //validate schema
+      return (schema ? validate(schema, data) : Promise.resolve())
+        //check auth
+        .then(() => ctrl._auth && ctrl._auth[fn]
+          ? Service.User.request('user.canAccess', {jwt: data.jwt, ...ctrl._auth[fn]})
+          : Promise.resolve())
+        //process request
+        .then(() => ctrl[fn](data))
+        .catch(e => {
+          logger.info(e);
+          return Promise.reject(e)
+        })
 
-      if (schema) return validate(schema, data).then(() => require(this.dir + '/' + controller)[fn](data));
-      return require(this.dir + '/' + controller)[fn](data);
 
     } catch (e) {
-      logger.error({message: 'Failed to process amqp action,', controller, function: fn, e});
-      return Promise.reject(new AmqpError('Internal Error'));
+      logger.error({
+        message: e.message,
+        controller, function: fn});
+      return Promise.reject(e);
     }
   };
 }
