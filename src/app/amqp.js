@@ -2,6 +2,7 @@ import amqplib from 'amqplib/callback_api';
 import AmqpError, {AmqpTimeoutError} from '../errors/amqp.error';
 import logger from '../logger/logger';
 import {v4 as uuid} from 'uuid';
+import Joi from 'joi';
 
 const amqp = {
   uuid: uuid().toString(),
@@ -164,16 +165,26 @@ amqp.addApiListener = (handler) => {
 
 // PUB - SUB
 
-amqp.send = (exchange, key, data, options = {}) => amqp.checkIsConnected()
-  .then(() => amqp.checkExchangeExists(amqp.getPath(exchange)))
-  .then(() => amqp._channel.publish(amqp.getPath(exchange), key, Buffer.from(JSON.stringify(data)), {persistent: true, content_type: 'application/json', ...options})
-    ? Promise.resolve({}) //todo return data ?
-    : Promise.reject(new AmqpError('failed to send')))
+amqp.sendEvent = (exchange, event, data = {}, options = {}) => {
+  if (!(data.company || data.email))
+    return Promise.reject(new AmqpError('company or email needed'));
+  return Joi.validate(data, event.schema, { allowUnknown: true })
+    .then(() => amqp.send(exchange, event.name, data, options))
+};
+
+amqp.send = (exchange, key, data, options = {}) =>
+  amqp.checkIsConnected()
+    .then(() => amqp.checkExchangeExists(amqp.getPath(exchange)))
+    .then(() => amqp._channel.publish(amqp.getPath(exchange), key, Buffer.from(JSON.stringify(data)), {persistent: true, content_type: 'application/json', ...options})
+      ? Promise.resolve({}) //todo return data ?
+      : Promise.reject(new AmqpError('failed to send'))
+    );
 
 amqp.addListener = (exchange, key, handler, force = false) => amqp.checkIsConnected()
   .then(() => amqp.checkExchangeExists(amqp.getPath(exchange)))
   .then(() => amqp.checkQueueExists('', {exclusive: true, durable: true}))
   .then((q) => {
+    if (typeof key === 'object') key = key.name;
     const path = amqp.getPath(exchange, key);
     if (amqp._handlers[path] && !force) return Promise.reject(new AmqpError(`another listener already exists for ${path}, use force=true to override`));
 
