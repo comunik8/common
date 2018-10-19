@@ -2,6 +2,7 @@ import amqplib from 'amqplib/callback_api';
 import AmqpError, {AmqpTimeoutError} from '../errors/amqp.error';
 import logger from '../logger/logger';
 import {v4 as uuid} from 'uuid';
+import Joi from 'joi';
 
 const amqp = {
   uuid: uuid().toString(),
@@ -30,10 +31,12 @@ amqp.checkIsConnected = () => {
 };
 
 amqp.checkExchangeExists = (name, type = 'topic', options = {durable: true}) =>
-    amqp._channel.assertExchange(name, type, options, (err, e) => (err ? Promise.reject(e) : Promise.resolve(e)));
+  new Promise((resolve, reject) =>
+    amqp._channel.assertExchange(name, type, options, (err, e) => (err ? reject(e) : resolve(e))))
 
 amqp.checkQueueExists = (name, options = {durable: true, exclusive: false}) =>
-    amqp._channel.assertQueue(name, options, (err, q) => (err ? Promise.reject(err) : Promise.resolve(q)));
+  new Promise((resolve, reject) =>
+    amqp._channel.assertQueue(name, options, (err, q) => (err ? reject(err) : resolve(q))))
 
 // RPC
 
@@ -162,38 +165,42 @@ amqp.addApiListener = (handler) => {
 
 // PUB - SUB
 
+amqp.sendEvent = (exchange, event, data = {}, options = {}) => {
+  if (!(data.company || data.email))
+    return Promise.reject(new AmqpError('company or email needed'));
+  return Joi.validate(data, event.schema, { allowUnknown: true })
+    .then(() => amqp.send(exchange, event.name, data, options))
+};
+
 amqp.send = (exchange, key, data, options = {}) =>
-    amqp.checkIsConnected()
-        .then(() => amqp.checkExchangeExists(amqp.getPath(exchange)))
-        .then(() =>
-            amqp._channel.publish(amqp.getPath(exchange), key, Buffer.from(JSON.stringify({data})), {persistent: true, content_type: 'application/json', ...options})
-                ? Promise.resolve()
-                : Promise.reject(
-                new AmqpError('failed to send')));
+  amqp.checkIsConnected()
+    .then(() => amqp.checkExchangeExists(amqp.getPath(exchange)))
+    .then(() => amqp._channel.publish(amqp.getPath(exchange), key, Buffer.from(JSON.stringify(data)), {persistent: true, content_type: 'application/json', ...options})
+      ? Promise.resolve({}) //todo return data ?
+      : Promise.reject(new AmqpError('failed to send'))
+    );
 
-amqp.addListener = (exchange, key, handler, force = false) =>
-    amqp.checkIsConnected()
-        .then(() => amqp.checkExchangeExists(amqp.getPath(exchange)))
-        .then(() => amqp.checkQueueExists('', {exclusive: true, durable: true}))
-        .then((q) => {
-          const path = amqp.getPath(exchange, key);
-          if (amqp._handlers[path] && !force) return Promise.reject(new AmqpError(`another listener already exists for ${path}, use force=true to override`));
+amqp.addListener = (exchange, key, handler, force = false) => amqp.checkIsConnected()
+  .then(() => amqp.checkExchangeExists(amqp.getPath(exchange)))
+  .then(() => amqp.checkQueueExists('', {exclusive: true, durable: true}))
+  .then((q) => {
+    if (typeof key === 'object') key = key.name;
+    const path = amqp.getPath(exchange, key);
+    if (amqp._handlers[path] && !force) return Promise.reject(new AmqpError(`another listener already exists for ${path}, use force=true to override`));
 
-          if (!amqp._handlers[path]) amqp._channel.bindQueue(q.queue, amqp.getPath(exchange), key);
+    if (!amqp._handlers[path]) amqp._channel.bindQueue(q.queue, amqp.getPath(exchange), key);
+    //todo handle failures (Promise.reject)
+    amqp._handlers[path] = (data, info) => handler(data, info);
 
-          //todo handle failures (Promise.reject)
-          amqp._handlers[path] = (data, info) => handler(data, info);
-          return new Promise((resolve, reject) => {
-            amqp._channel.consume(
-                q.queue,
-                msg => amqp._handlers[path](JSON.parse(msg.content.toString()), {exchange: amqp.getPath(exchange), key, path}),
-                {noAck: true},
-                (err, ok) => {
-                  if (err) return reject(err);
-                  resolve(ok);
-                });
-          });
-        });
+    return new Promise((resolve, reject) => amqp._channel.consume(
+      q.queue,
+      msg => amqp._handlers[path](JSON.parse(msg.content.toString()), {exchange: amqp.getPath(exchange), key, path}) ,
+      {noAck: true},
+      (err, ok) => {
+        if (err) return reject(err);
+        resolve(ok);
+      }));
+  })
 
 // CONFIG
 
