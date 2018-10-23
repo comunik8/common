@@ -22,8 +22,14 @@ const configure = (config, mongoose = null, connect_automatically = true) => {
   mongoose.Promise = Promise;
 
   // connect to mongo db
-  mongoOptions = {authSource: config.mongo.db};
+  mongoOptions = {authSource: config.mongo.db, useNewUrlParser: true};
   if (config.mongo.servers.indexOf(',') >= 0) mongoOptions.replicaSet = config.mongo.rs;
+  if (config.mongo.ssl) {
+    mongoOptions = {
+      ...mongoOptions,
+      ssl: true,
+    };
+  }
   if (config.mongo.cert) {
     mongoOptions = {
       ...mongoOptions,

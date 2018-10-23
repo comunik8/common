@@ -15,6 +15,7 @@ const schema = (keys = ['DEFAULT']) =>
       MONGO: {
         MONGO_USERNAME: Joi.string(),
         MONGO_PASSWORD: Joi.string(),
+        MONGO_SSL: Joi.boolean().default(false),
         MONGO_DB: Joi.string().required(),
         MONGO_RS: Joi.string().default('rs0'),
         MONGO_CERT: Joi.string(),
