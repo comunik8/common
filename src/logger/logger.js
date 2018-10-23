@@ -8,6 +8,8 @@ const transports = [
       json: true,
       colorize: true,
       timestamp: true,
+      humanReadableUnhandledException: true,
+      handleExceptions: true,
     }),
   },
   {
